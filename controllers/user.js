@@ -1,8 +1,15 @@
 const User = require("../model/Users");
 
-const findAll = async (req, res) => {
+const findAllUsers = async (req, res) => {
     const user = await User.find();
     res.status(200).json(user);
 };
 
-module.exports = { findAll };
+const findOneUser = async (req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+    const user = await User.findOne({ refreshToken }).exec();
+    const { email, name } = user
+    res.status(200).json({ userInfo: { email, name } });
+};
+
+module.exports = { findAllUsers, findOneUser };

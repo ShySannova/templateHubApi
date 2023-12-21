@@ -31,12 +31,7 @@ const register = async (req, res) => {
         //saving user to the db
         await newUser.save();
 
-        //generate token
-        const token = jwt.sign({ userId: newUser._id }, process.env.ACCESS_TOKEN_SECRET, {
-            expiresIn: "1h",
-        });
-
-        res.status(201).json({ userId: newUser._id, token });
+        res.status(201).json({ message: "User Successfully Registered! Please Login" });
     } catch (error) {
         console.error("Error registering user", error);
         res.status(500).json({ message: "Internal Server Error" });

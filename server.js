@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
+const corsOptions = require('./config/corsOptions');
+
 
 
 // import express from 'express'
@@ -17,7 +19,7 @@ const mongoURI = process.env.MONGODB_URI;
 
 const app = express();
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser())
 
@@ -33,7 +35,7 @@ app.use('/', [authRouter]);
 app.use('/', require('./routes/refreshToken'));
 
 app.use(verifyAccessToken);
-app.use('/users', [userRouter]);
+app.use('/user', [userRouter]);
 
 // try {
 //     await mongoose.connect(mongoURI);

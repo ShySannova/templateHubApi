@@ -2,16 +2,15 @@ const jwt = require('jsonwebtoken');
 
 const verifyAccessToken = (req, res, next) => {
 
-    //get token
-    const token = req?.headers?.authorization?.split(' ')[1];
+    const accessToken = req?.cookies?.accessToken;
 
     //if token not found
-    if (!token) {
+    if (!accessToken) {
         return res.status(401).json({ message: 'Access token is missing' });
     }
 
     //verify token
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
             return res.status(401).json({ message: 'Invalid access token' });
         }
