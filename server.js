@@ -31,6 +31,9 @@ const authRouter = require('./routes/auth');
 const verifyAccessToken = require('./middlewares/verifyAccessToken')
 const userRouter = require('./routes/user');
 
+const templateRouter = require('./routes/template');
+
+
 //setting endpoints
 app.use('/', [registerRouter]);
 app.use('/', [authRouter]);
@@ -38,6 +41,9 @@ app.use('/', require('./routes/refreshToken'));
 
 app.use(verifyAccessToken);
 app.use('/user', [userRouter]);
+app.use('/template', [templateRouter]);
+
+
 
 // try {
 //     await mongoose.connect(mongoURI);
