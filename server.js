@@ -4,7 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
 const corsOptions = require('./config/corsOptions');
-
+const { cleanupExpiredRefreshTokens } = require("./lib/tokenCleanup")
 
 
 // import express from 'express'
@@ -22,6 +22,8 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser())
+
+cleanupExpiredRefreshTokens()
 
 //importing routes
 const registerRouter = require('./routes/register');

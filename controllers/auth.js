@@ -28,7 +28,11 @@ const login = async (req, res) => {
             });
 
             //save refresh token to db
-            user.refreshToken.push(refreshToken);
+            user.refreshToken.push({
+                token: refreshToken,
+                expiresAt: new Date(Date.now() + 3 * 60 * 1000), // 7 days from now
+            });
+
             await user.save()
 
             //set httpOnly cookie
@@ -54,7 +58,7 @@ const logout = async (req, res) => {
     const refreshToken = cookies?.refreshToken;
 
     // Is refreshToken in db?
-    const foundUser = await User.findOne({ refreshToken }).exec();
+    const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
     if (!foundUser) {
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
         return res.status(200).json({ message: "User succcessfully logged out" });
@@ -62,11 +66,11 @@ const logout = async (req, res) => {
     }
 
     // Delete refreshToken in db
-    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt !== refreshToken);;
+    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt.token !== refreshToken);;
     const result = await foundUser.save();
 
     res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-    res.clearCookie('accessToken')
+    res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
     res.status(200).json({ message: "User succcessfully logged out" });
 }
 
