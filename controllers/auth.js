@@ -21,25 +21,28 @@ const login = async (req, res) => {
         //if password matches generate token
         if (passwordMatch) {
             const accessToken = jwt.sign({ userId: user._id }, process.env.ACCESS_TOKEN_SECRET, {
-                expiresIn: "1m",
+                expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
             });
             const refreshToken = jwt.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET, {
-                expiresIn: "3m",
+                expiresIn: `${process.env.REFRESH_TOKEN_TIME_VALID}m`,
             });
 
             //save refresh token to db
             user.refreshToken.push({
                 token: refreshToken,
-                expiresAt: new Date(Date.now() + 3 * 60 * 1000), // 7 days from now
+                expiresAt: new Date(Date.now() + eval(process.env.REFRESH_TOKEN_MAXAGE)), // 30 mins from now
             });
 
             await user.save()
 
             //set httpOnly cookie
-            res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: 60 * 1000 })
-            res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: 3 * 60 * 1000 })
+            res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.ACCESS_TOKEN_MAXAGE) })
+            res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.REFRESH_TOKEN_MAXAGE) })
+
+            const { _id, name, email } = user
 
             res.status(200).json({
+                userInfo: { _id, name, email },
                 message: "User successfully logged-In",
             });
 
