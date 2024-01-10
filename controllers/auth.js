@@ -21,21 +21,28 @@ const login = async (req, res) => {
         //if password matches generate token
         if (passwordMatch) {
             const accessToken = jwt.sign({ userId: user._id }, process.env.ACCESS_TOKEN_SECRET, {
-                expiresIn: "1m",
+                expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
             });
             const refreshToken = jwt.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET, {
-                expiresIn: "3m",
+                expiresIn: `${process.env.REFRESH_TOKEN_TIME_VALID}m`,
             });
 
             //save refresh token to db
-            user.refreshToken.push(refreshToken);
+            user.refreshToken.push({
+                token: refreshToken,
+                expiresAt: new Date(Date.now() + eval(process.env.REFRESH_TOKEN_MAXAGE)), // 30 mins from now
+            });
+
             await user.save()
 
             //set httpOnly cookie
-            res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: 60 * 1000 })
-            res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: 3 * 60 * 1000 })
+            res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.ACCESS_TOKEN_MAXAGE) })
+            res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.REFRESH_TOKEN_MAXAGE) })
+
+            const { _id, name, email } = user
 
             res.status(200).json({
+                userInfo: { _id, name, email },
                 message: "User successfully logged-In",
             });
 
@@ -54,7 +61,7 @@ const logout = async (req, res) => {
     const refreshToken = cookies?.refreshToken;
 
     // Is refreshToken in db?
-    const foundUser = await User.findOne({ refreshToken }).exec();
+    const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
     if (!foundUser) {
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
         return res.status(200).json({ message: "User succcessfully logged out" });
@@ -62,11 +69,11 @@ const logout = async (req, res) => {
     }
 
     // Delete refreshToken in db
-    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt !== refreshToken);;
+    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt.token !== refreshToken);;
     const result = await foundUser.save();
 
     res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-    res.clearCookie('accessToken')
+    res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
     res.status(200).json({ message: "User succcessfully logged out" });
 }
 

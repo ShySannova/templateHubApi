@@ -8,9 +8,9 @@ const refreshToken = async (req, res) => {
 
     const refreshToken = cookies?.refreshToken;
 
-    res.clearCookie('refreshToken', { httpOnly: true, sameSite: "None", secure: true, maxAge: 3 * 60 * 1000 })
+    res.clearCookie('refreshToken', { httpOnly: true, sameSite: "None", secure: true })
 
-    const foundUser = await User.findOne({ refreshToken }).exec();
+    const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
 
     if (!foundUser) {
         jwt.verify(
@@ -18,7 +18,7 @@ const refreshToken = async (req, res) => {
             process.env.REFRESH_TOKEN_SECRET,
             async (err, decoded) => {
                 if (err) return res.sendStatus(403);
-                const hackedUser = User.findOne({ username: decoded.username }).exec();
+                const hackedUser = await User.findOne({ username: decoded.username }).exec();
                 hackedUser.refreshToken = [];
                 const result = await hackedUser.save()
             }
@@ -26,7 +26,7 @@ const refreshToken = async (req, res) => {
         res.sendStatus(403)
     }
 
-    const newRefreshTokenArray = foundUser.refreshToken.filter(rt => rt !== refreshToken)
+    const newRefreshTokenArray = foundUser?.refreshToken?.filter(rt => rt.token !== refreshToken)
 
     jwt.verify(
         refreshToken,
@@ -41,21 +41,26 @@ const refreshToken = async (req, res) => {
             // Refresh token was still valid
             const newAccessToken = jwt.sign({ userId: foundUser._id }, process.env.ACCESS_TOKEN_SECRET,
                 {
-                    expiresIn: "1m",
+                    expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
                 });
 
-            const newRefreshToken = jwt.sign({ userId: foundUser._id }, process.env.REFRESH_TOKEN_SECRET,
-                {
-                    expiresIn: '3m'
-                }
-            );
+            const newRefreshToken = {
+                token: jwt.sign({ userId: foundUser._id }, process.env.REFRESH_TOKEN_SECRET,
+                    {
+                        expiresIn: `${process.env.REFRESH_TOKEN_TIME_VALID}m`
+                    }
+                ),
+                expiresAt: new Date(Date.now() + eval(process.env.REFRESH_TOKEN_MAXAGE)),
+            }
+
+
             // Saving refreshToken with current user
             foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
             const result = await foundUser.save();
 
             // Creates Secure Cookie with refresh token
-            res.cookie('accessToken', newAccessToken, { httpOnly: true, secure: true, sameSite: 'None', maxAge: 60 * 1000 });
-            res.cookie('refreshToken', newRefreshToken, { httpOnly: true, secure: true, sameSite: 'None', maxAge: 3 * 60 * 1000 });
+            res.cookie('accessToken', newAccessToken, { httpOnly: true, secure: true, sameSite: 'None', maxAge: eval(process.env.ACCESS_TOKEN_MAXAGE) });
+            res.cookie('refreshToken', newRefreshToken.token, { httpOnly: true, secure: true, sameSite: 'None', maxAge: eval(process.env.REFRESH_TOKEN_MAXAGE) });
 
             res.status(200).json({
                 message: "token regenerated",

@@ -19,8 +19,9 @@ const verifyRefreshToken = async (req, res, next) => {
         req.userId = decoded.userId;
 
         const user = await User.findById(req.userId);
+        const foundToken = user?.refreshToken.find(rt => rt.token === refreshToken);
 
-        if (!user || !user.refreshToken.includes(refreshToken)) {
+        if (!user || !foundToken) {
             return res.status(403).json({ message: 'Invalid user or refresh token' });
         }
 
