@@ -38,10 +38,10 @@ const templateRouter = require('./routes/template');
 app.use('/', [registerRouter]);
 app.use('/', [authRouter]);
 app.use('/', require('./routes/refreshToken'));
+app.use('/template', [templateRouter]);
 
 app.use(verifyAccessToken);
 app.use('/user', [userRouter]);
-app.use('/template', [templateRouter]);
 
 
 
