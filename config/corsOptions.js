@@ -1,7 +1,8 @@
 const whitelist = [
     'http://localhost:5173',
     'http://localhost:4173',
-    'https://templatehub.onrender.com'
+    'https://templatehub.onrender.com',
+    'https://templatehubrevamp.onrender.com'
 ];
 
 const corsOptions = {
