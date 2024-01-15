@@ -2,7 +2,13 @@ const jwt = require('jsonwebtoken');
 
 const verifyAccessToken = (req, res, next) => {
 
+    const refreshToken = req?.cookies?.refreshToken;
     const accessToken = req?.cookies?.accessToken;
+
+    //if no refresh token
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'Refresh token is missing' })
+    }
 
     //if token not found
     if (!accessToken) {

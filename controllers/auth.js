@@ -20,10 +20,10 @@ const login = async (req, res) => {
 
         //if password matches generate token
         if (passwordMatch) {
-            const accessToken = jwt.sign({ userId: user._id }, process.env.ACCESS_TOKEN_SECRET, {
+            const accessToken = jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
             });
-            const refreshToken = jwt.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET, {
+            const refreshToken = jwt.sign({ email: user.email }, process.env.REFRESH_TOKEN_SECRET, {
                 expiresIn: `${process.env.REFRESH_TOKEN_TIME_VALID}m`,
             });
 

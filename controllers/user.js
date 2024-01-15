@@ -9,6 +9,7 @@ const findOneUser = async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) return res.sendStatus(401)
     const user = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
+    if (!user) return res.status(404)
     const { email, name } = user
     res.status(200).json({ userInfo: { email, name } });
 };

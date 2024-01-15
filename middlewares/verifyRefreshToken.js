@@ -16,9 +16,9 @@ const verifyRefreshToken = async (req, res, next) => {
     try {
 
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        req.userId = decoded.userId;
+        const { email } = decoded;
 
-        const user = await User.findById(req.userId);
+        const user = await User.findOne({ email });
         const foundToken = user?.refreshToken.find(rt => rt.token === refreshToken);
 
         if (!user || !foundToken) {
