@@ -39,6 +39,7 @@ app.use('/', [registerRouter]);
 app.use('/', [authRouter]);
 app.use('/', require('./routes/refreshToken'));
 app.use('/template', [templateRouter]);
+app.use('/', require("./routes/cookiesRemover"))
 
 app.use(verifyAccessToken);
 app.use('/user', [userRouter]);

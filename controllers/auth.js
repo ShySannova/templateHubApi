@@ -57,13 +57,15 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
 
     const cookies = req.cookies;
-    if (!cookies) return res.sendStatus(204); //No content
     const refreshToken = cookies?.refreshToken;
+    // if (!cookies?.refreshToken) return res.sendStatus(204); //No content
+    if (!cookies?.refreshToken) return res.status(200).json({ message: "no cookies" }); //No content
 
     // Is refreshToken in db?
     const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
     if (!foundUser) {
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
+        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
         return res.status(200).json({ message: "User succcessfully logged out" });
         // return res.sendStatus(204);
     }

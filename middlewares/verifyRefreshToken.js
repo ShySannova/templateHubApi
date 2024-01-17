@@ -9,6 +9,7 @@ const verifyRefreshToken = async (req, res, next) => {
 
     //if token not found
     if (!refreshToken) {
+        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
         return res.status(401).json({ message: 'Refresh token is missing' });
     }
 
@@ -22,6 +23,8 @@ const verifyRefreshToken = async (req, res, next) => {
         const foundToken = user?.refreshToken.find(rt => rt.token === refreshToken);
 
         if (!user || !foundToken) {
+            res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
+            res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
             return res.status(403).json({ message: 'Invalid user or refresh token' });
         }
 
