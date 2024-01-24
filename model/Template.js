@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 
 const TemplateSchema = mongoose.Schema(
     {
-        user_id:{
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User",
+        user_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
         },
         template_name: {
@@ -19,9 +19,9 @@ const TemplateSchema = mongoose.Schema(
             type: [],
             required: true,
         },
-        template_url:{
-            type:String,
-            unique:true,
+        template_url: {
+            type: String,
+            unique: true,
             required: true,
         },
         description: {
@@ -36,6 +36,6 @@ const TemplateSchema = mongoose.Schema(
     { timestamps: true }
 );
 
-const Template = mongoose.model("Templates", TemplateSchema);
+const Template = mongoose.model("Template", TemplateSchema);
 
 module.exports = Template;

@@ -1,4 +1,4 @@
-const templateModel = require("../model/Templates");
+const templateModel = require("../model/Template");
 
 const createTemplate = async (req, res) => {
     try {
@@ -20,10 +20,14 @@ const createTemplate = async (req, res) => {
 
 const findAllTemplates = async (req, res) => {
     try {
-        const templates = await templateModel.find();
+        const templates = await templateModel.find().populate({
+            path: 'user_id',
+            select: 'name', // Select field to show by using "name"  //Exclude field by using '-password'
+        });
         res.send(templates);
     }
     catch (err) {
+        console.log(err)
         res.send({ success: false, message: "please try again later" })
     }
 
