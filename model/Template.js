@@ -15,6 +15,11 @@ const TemplateSchema = mongoose.Schema(
             type: String,
             required: true,
         },
+        status: {
+            default: 'draft',
+            type: String,
+            required: true,
+        },
         stacks: {
             type: [],
             required: true,

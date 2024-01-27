@@ -130,7 +130,6 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
     const { resetPassToken, newPassword } = req.body;
-    console.log(resetPassToken)
 
     try {
         // Verify the JWT and decode the email from the payload
@@ -162,6 +161,35 @@ const resetPassword = async (req, res) => {
     }
 }
 
+const changePassword = async (req, res) => {
+    const { newPassword, email } = req.body;
+
+    try {
+        const foundUser = await User.findOne({ email }).exec();
+
+        if (!foundUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        //generating salt
+        const saltRounds = 10;
+        const salt = await bcrypt.genSalt(saltRounds);
+
+        //hash password with salt
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        console.log(hashedPassword)
+
+        foundUser.password = hashedPassword
+
+        await foundUser.save()
+
+        res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+        return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+}
+
 const verifyResetPassword = async (req, res) => {
     try {
         const { resetPassToken } = req.body
@@ -186,4 +214,4 @@ const verifyResetPassword = async (req, res) => {
 
 
 
-module.exports = { login, logout, forgotPassword, resetPassword, verifyResetPassword };
+module.exports = { login, logout, forgotPassword, resetPassword, changePassword, verifyResetPassword };
