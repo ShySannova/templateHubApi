@@ -3,19 +3,17 @@ const User = require('../model/User');
 
 
 const verifyRefreshToken = async (req, res, next) => {
-
-    //get refresh token
-    const refreshToken = req?.cookies?.refreshToken;
-
-    //if token not found
-    if (!refreshToken) {
-        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
-        return res.status(401).json({ message: 'Refresh token is missing' });
-    }
-
-    //verify token
     try {
+        // Get refresh token
+        const refreshToken = req?.cookies?.refreshToken;
 
+        // If token not found
+        if (!refreshToken) {
+            res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true });
+            return res.status(401).json({ success: false, message: 'Refresh token is missing' });
+        }
+
+        // Verify token
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
         const { email } = decoded;
 
@@ -24,18 +22,18 @@ const verifyRefreshToken = async (req, res, next) => {
 
         if (!user || !foundToken) {
             res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-            res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
-            return res.status(403).json({ message: 'Invalid user or refresh token' });
+            res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true });
+            return res.status(403).json({ success: false, message: 'Invalid user or refresh token' });
         }
 
-        //continue to next route
+        // Continue to the next route
         next();
 
     } catch (error) {
-        return res.status(401).json({ message: 'Invalid refresh token' })
+        console.error('Error during refresh token verification:', error);
+        return res.status(401).json({ success: false, message: 'Invalid refresh token' });
     }
+};
 
-
-}
 
 module.exports = verifyRefreshToken;

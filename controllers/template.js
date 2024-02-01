@@ -1,74 +1,173 @@
 const templateModel = require("../model/Template");
+const { isObjectEmpty } = require("../utils/helpers");
 
 const createTemplate = async (req, res) => {
+
     try {
-        let templateData = req.body
-        templateModel.create(templateData)
-            .then(() => {
-                res.send({ success: true, message: "your template has saved" })
-            })
-            .catch(() => {
-                res.send({ success: false, message: "please try again later" })
-            })
-    }
-    catch (err) {
-        res.send({ success: false, message: "please try again later" })
-    }
+        const templateData = req.body;
 
+        if (!templateData) {
+            return res.status(400).json({ success: false, message: "Please provide valid data" });
+        }
+        await templateModel.create(templateData);
+        res.status(201).json({ success: true, message: "Your template has been saved" });
+    } catch (error) {
+        console.error(error);
 
+        if (error.name === 'ValidationError') {
+            // Handle validation errors (e.g., required fields missing)
+            res.status(400).json({ success: false, message: "Validation error: Please check your data" });
+        } else if (error.code === 11000) {
+            // Handle duplicate key (e.g., unique constraint violation)
+            res.status(409).json({ success: false, message: "Duplicate entry: This template already exists" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    }
 };
 
 const findAllTemplates = async (req, res) => {
     try {
         const templates = await templateModel.find().populate({
-            path: 'user_id',
+            path: 'user',
             select: 'name', // Select field to show by using "name"  //Exclude field by using '-password'
         });
-        res.send(templates);
-    }
-    catch (err) {
-        console.log(err)
-        res.send({ success: false, message: "please try again later" })
-    }
+        res.status(200).json({ success: true, templates })
+    } catch (error) {
+        console.error(error);
 
+        if (error.name === 'CastError') {
+            // Handle invalid ObjectId in the request
+            res.status(400).json({ success: false, message: "Invalid ObjectId in the request" });
+        } else if (error.name === 'ValidationError') {
+            // Handle custom schema validation errors
+            res.status(400).json({ success: false, message: "Schema validation error: Please check your data" });
+        } else if (error.code === 11000) {
+            // Handle duplicate key (e.g., unique constraint violation)
+            res.status(409).json({ success: false, message: "Duplicate entry: This template already exists" });
+        } else if (error.message.includes('timeout')) {
+            // Handle timeout-related errors
+            res.status(503).json({ success: false, message: "Database operation timed out" });
+        } else if (error.name === 'MongoNetworkError') {
+            // Handle network-related errors
+            res.status(503).json({ success: false, message: "Database connection error" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    }
 };
+
 
 const findOneTemplate = async (req, res) => {
-    let templateID = req.params.id;
-    templateModel.findById({ _id: templateID })
-        .then((data) => {
-            res.send(data)
-        })
-        .catch(() => {
-            res.status(404).json({ success: false, message: "please try again later" })
-        })
+    try {
+        const templateID = req.params.id;
+        if (!templateID) {
+            return res.status(400).json({ success: false, message: "Please provide valid id" });
+        }
+        const data = await templateModel.findById({ _id: templateID });
 
+        if (!data) {
+            // Handle case where template with the specified ID is not found
+            res.status(404).json({ success: false, message: "Template not found" });
+        } else {
+            res.status(200).json({ success: true, template: data })
+        }
+    } catch (error) {
+        console.error(error);
+
+        if (error.name === 'CastError') {
+            // Handle invalid ObjectId in the request
+            res.status(400).json({ success: false, message: "Invalid ObjectId in the request" });
+        } else if (error.message.includes('timeout')) {
+            // Handle timeout-related errors
+            res.status(503).json({ success: false, message: "Database operation timed out" });
+        } else if (error.name === 'MongoNetworkError') {
+            // Handle network-related errors
+            res.status(503).json({ success: false, message: "Database connection error" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    }
 };
+
 
 const updateTemplate = async (req, res) => {
-    let templateID = req.params.id;
-    let templateData = req.body
-    templateModel.updateOne({ _id: templateID }, templateData)
-        .then((data) => {
-            res.send(data)
-        })
-        .catch(() => {
-            res.send({ success: false, message: "please try again later" })
-        })
+    try {
+        const templateID = req.params.id;
+        const templateData = req.body;
+        const empty = isObjectEmpty(templateData)
+        if (!templateID || empty) {
+            return res.status(400).json({ success: false, message: "Please provide valid id or data" });
+        }
+        const data = await templateModel.updateOne({ _id: templateID }, templateData);
 
+        if (data.modifiedCount === 1) {
+            // The template was successfully updated
+            res.status(200).json({ success: true, message: "Template updated successfully" });
+        } else if (data.n === 0) {
+            // Handle case where template with the specified ID is not found
+            res.status(404).json({ success: false, message: "Template not found" });
+        } else {
+            // Handle other unexpected cases
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later 1" });
+        }
+    } catch (error) {
+        console.error(error);
+
+        if (error.name === 'CastError') {
+            // Handle invalid ObjectId in the request
+            res.status(400).json({ success: false, message: "Invalid ObjectId in the request" });
+        } else if (error.message.includes('timeout')) {
+            // Handle timeout-related errors
+            res.status(503).json({ success: false, message: "Database operation timed out" });
+        } else if (error.name === 'MongoNetworkError') {
+            // Handle network-related errors
+            res.status(503).json({ success: false, message: "Database connection error" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later 2" });
+        }
+    }
 };
+
 
 const deleteTemplate = async (req, res) => {
-    let templateID = req.params.id;
 
-    templateModel.deleteOne({ _id: templateID })
-        .then(() => {
-            res.send({ success: true, message: "template data has been deleted" })
-        })
-        .catch((err) => {
-            res.send({ success: false, message: "please try again later" })
-        })
+    try {
+        const templateID = req.params.id;
+        const data = await templateModel.deleteOne({ _id: templateID });
 
+        if (data.deletedCount === 1) {
+            // The template was successfully deleted
+            res.status(204).json({ success: true, message: "Template deleted successfully" });
+        } else if (data.deletedCount === 0) {
+            // Handle case where template with the specified ID is not found
+            res.status(404).json({ success: false, message: "Template not found" });
+        } else {
+            // Handle other unexpected cases
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    } catch (error) {
+        console.error(error);
+
+        if (error.name === 'CastError') {
+            // Handle invalid ObjectId in the request
+            res.status(400).json({ success: false, message: "Invalid ObjectId in the request" });
+        } else if (error.message.includes('timeout')) {
+            // Handle timeout-related errors
+            res.status(503).json({ success: false, message: "Database operation timed out" });
+        } else if (error.name === 'MongoNetworkError') {
+            // Handle network-related errors
+            res.status(503).json({ success: false, message: "Database connection error" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    }
 };
+
 
 module.exports = { createTemplate, findAllTemplates, findOneTemplate, updateTemplate, deleteTemplate };

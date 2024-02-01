@@ -2,27 +2,33 @@ const User = require("../model/User");
 
 const cookiesRemover = async (req, res) => {
 
-    const cookies = req.cookies;
-    const refreshToken = cookies?.refreshToken;
-    if (!cookies?.refreshToken) return res.status(200).json({ message: "no cookies" }); //No content
+    try {
+        const cookies = req.cookies;
+        const refreshToken = cookies?.refreshToken;
 
-    // Is refreshToken in db?
-    const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
-    if (!foundUser) {
+        if (!refreshToken) {
+            return res.status(200).json({ message: "no cookies" });
+        }
+        // Is refreshToken in db?
+        const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
+
+        if (foundUser) {
+            // Delete refreshToken in db
+            foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt.token !== refreshToken);
+            await foundUser.save();
+        }
+
+        // Clear cookies on the client side
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
-        return res.status(200).json({ message: "cookies successfully removed" });
-        // return res.sendStatus(204);
+        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true });
+
+        res.status(200).json({ message: "cookies successfully removed" });
+    } catch (error) {
+        console.error("Error removing cookies:", error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
+};
 
-    // Delete refreshToken in db
-    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt.token !== refreshToken);;
-    const result = await foundUser.save();
-
-    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-    res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
-    res.status(200).json({ message: "cookies successfully removed" });
-}
 
 
 module.exports = cookiesRemover;

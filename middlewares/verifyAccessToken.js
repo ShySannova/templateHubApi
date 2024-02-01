@@ -1,33 +1,34 @@
 const jwt = require('jsonwebtoken');
 
 const verifyAccessToken = (req, res, next) => {
+    try {
+        const refreshToken = req?.cookies?.refreshToken;
+        const accessToken = req?.cookies?.accessToken;
 
-    const refreshToken = req?.cookies?.refreshToken;
-    const accessToken = req?.cookies?.accessToken;
-
-    //if no refresh token
-    if (!refreshToken) {
-        return res.status(401).json({ message: 'Refresh token is missing' })
-    }
-
-    //if token not found
-    if (!accessToken) {
-        return res.status(401).json({ message: 'Access token is missing' });
-    }
-
-    //verify token
-    jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ message: 'Invalid access token' });
+        // If no refresh token
+        if (!refreshToken) {
+            return res.status(401).json({ success: false, message: 'Refresh token is missing' });
         }
 
-        req.userId = decoded.userId;
+        // If token not found
+        if (!accessToken) {
+            return res.status(401).json({ success: false, message: 'Access token is missing' });
+        }
 
-        //continue to next route
-        next();
+        // Verify token
+        jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ success: false, message: 'Invalid access token' });
+            }
+            // req.userId = decoded.userId;
+            // Continue to the next route
+            next();
+        });
+    } catch (error) {
+        console.error('Error during access token verification:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
 
-    });
-
-}
 
 module.exports = verifyAccessToken;

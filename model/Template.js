@@ -2,41 +2,71 @@ const mongoose = require("mongoose");
 
 const TemplateSchema = mongoose.Schema(
     {
-        user_id: {
+        user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
         },
-        template_name: {
+        title: {
             type: String,
             required: true,
         },
-        main_image: {
+        badge: {
             type: String,
-            required: true,
+        },
+        tech: {
+            type: [String],
+        },
+        responsive: {
+            type: Boolean,
+            default: false
+        },
+        image: {
+            type: String,
         },
         status: {
-            default: 'draft',
             type: String,
-            required: true,
+            default: "draft",
         },
         stacks: {
-            type: [],
-            required: true,
+            type: [String],
         },
-        template_url: {
+        url: {
             type: String,
             unique: true,
-            required: true,
+        },
+        metaTitle: {
+            type: String,
+        },
+        metaDescription: {
+            type: String,
+        },
+        keywords: {
+            type: [String],
         },
         description: {
             type: String,
-            required: true,
+        },
+        features: {
+            type: [String],
+        },
+        price: {
+            type: Number,
+            default: 0,
+        },
+        discount: {
+            type: Number,
+            default: 0,
         },
         images: {
             type: [],
-        }
-
+        },
+        sourceCode: {
+            type: {
+                frotend: String,
+                backend: String
+            },
+        },
     },
     { timestamps: true }
 );

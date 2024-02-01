@@ -8,100 +8,107 @@ const login = async (req, res) => {
     try {
         const { email, password } = req?.body;
 
-        //find the user from db
+        // Find the user from the database
         const user = await User.findOne({ email });
 
-        //check if user exists
+        // Check if the user exists
         if (!user) {
-            return res.status(401).json({ message: "Invalid email or password" });
+            return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
 
-        //compare the provided password with hashed password from db
+        // Compare the provided password with the hashed password from the database
         const passwordMatch = await bcrypt.compare(password, user.password);
 
-        //if password matches generate token
+        // If the password matches, generate tokens
         if (passwordMatch) {
+            const { _id, name, email } = user;
+
             const accessToken = jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
             });
+
             const refreshToken = jwt.sign({ email: user.email }, process.env.REFRESH_TOKEN_SECRET, {
                 expiresIn: `${process.env.REFRESH_TOKEN_TIME_VALID}m`,
             });
 
-            //save refresh token to db
+            // Save refresh token to the database
             user.refreshToken.push({
                 token: refreshToken,
-                expiresAt: new Date(Date.now() + eval(process.env.REFRESH_TOKEN_MAXAGE)), // 30 mins from now
+                expiresAt: new Date(Date.now() + eval(process.env.REFRESH_TOKEN_MAXAGE)),
             });
 
-            await user.save()
+            await user.save();
 
-            //set httpOnly cookie
-            res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.ACCESS_TOKEN_MAXAGE) })
-            res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.REFRESH_TOKEN_MAXAGE) })
-
-            const { _id, name, email } = user
+            // Set HTTP-only cookies
+            res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.ACCESS_TOKEN_MAXAGE) });
+            res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.REFRESH_TOKEN_MAXAGE) });
 
             res.status(200).json({
+                success: true,
                 userInfo: { _id, name, email },
-                message: "User successfully logged-In",
+                message: "User successfully logged in",
             });
-
         } else {
-            return res.status(401).json({ message: "Invalid email or password" });
+            // Incorrect password
+            return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
     } catch (error) {
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error("Error during login:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
 const logout = async (req, res) => {
+    try {
+        const cookies = req.cookies;
+        const refreshToken = cookies?.refreshToken;
 
-    const cookies = req.cookies;
-    const refreshToken = cookies?.refreshToken;
-    // if (!cookies?.refreshToken) return res.sendStatus(204); //No content
-    if (!cookies?.refreshToken) return res.status(200).json({ message: "no cookies" }); //No content
+        if (!refreshToken) {
+            return res.status(200).json({ success: false, message: "No cookies, user not logged in" });
+        }
 
-    // Is refreshToken in db?
-    const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
-    if (!foundUser) {
+        const foundUser = await User.findOne({ 'refreshToken.token': refreshToken }).exec();
+
+        if (!foundUser) {
+            res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
+            res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true });
+            return res.status(200).json({ success: true, message: "User successfully logged out" });
+        }
+
+        foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt.token !== refreshToken);
+        const result = await foundUser.save();
+
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
-        return res.status(200).json({ message: "User succcessfully logged out" });
-        // return res.sendStatus(204);
+        res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true });
+        return res.status(200).json({ success: true, message: "User successfully logged out" });
+    } catch (error) {
+        console.error("Error during logout:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
+};
 
-    // Delete refreshToken in db
-    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt.token !== refreshToken);;
-    const result = await foundUser.save();
 
-    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'None', secure: true });
-    res.clearCookie('accessToken', { httpOnly: true, sameSite: 'None', secure: true })
-    res.status(200).json({ message: "User succcessfully logged out" });
-}
 
 
 const passwordResetTokens = {};
 
 
 const forgotPassword = async (req, res) => {
-
     try {
         const origin = req.get('Origin');
         const { email } = req.body;
 
-        if (!email) return res.status(404).json({ message: "please provide an email" })
+        if (!email) return res.status(404).json({ success: false, message: "Please provide an email" });
 
         const foundUser = await User.findOne({ email }).exec();
 
         if (!foundUser) {
-            return res.status(200).json({ message: "Email Not Vaild" })
+            return res.status(200).json({ success: false, message: "Email not valid" });
         }
-
 
         // Generate a JWT with the user's email as part of the payload
         const resetPassToken = jwt.sign({ email }, process.env.FORGOT_PASSWORD_TOKEN_SECRET, { expiresIn: '1h' });
-        const encodedToken = encodeURIComponent(resetPassToken)
+        const encodedToken = encodeURIComponent(resetPassToken);
 
         // Send the password reset link to the user's email
         const resetLink = `${origin}/reset-password/${encodedToken}/`;
@@ -111,27 +118,33 @@ const forgotPassword = async (req, res) => {
             admin_message: resetLink,
             subject: "Password Recovery",
             from_name: "TemplateHub Team"
+        };
+
+        let sentSuccessfully = await sendResetPasswordMail(body);
+
+        if (!sentSuccessfully) {
+            return res.status(500).json({ success: false, message: "Some internal error occurred" });
         }
 
-        let sentSuccessfull = await sendResetPasswordMail(body)
-
-        if (!sentSuccessfull) return res.status(500).json({ message: "some intternal error" })
         passwordResetTokens[email] = resetPassToken;
 
-
-        res.status(200).json({ message: "reset url sent successfully", resetLink })
-
-
+        res.status(200).json({ success: true, message: "Reset URL sent successfully" });
     } catch (error) {
-        console.error(error.stack)
+        console.error(error.stack);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
+};
 
-}
 
 const resetPassword = async (req, res) => {
-    const { resetPassToken, newPassword } = req.body;
 
     try {
+        const { resetPassToken, newPassword } = req.body;
+
+        if (!resetPassToken || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Invalid input' });
+        }
+
         // Verify the JWT and decode the email from the payload
         const decoded = jwt.verify(resetPassToken, process.env.FORGOT_PASSWORD_TOKEN_SECRET);
         const email = decoded.email;
@@ -139,75 +152,94 @@ const resetPassword = async (req, res) => {
         const foundUser = await User.findOne({ email }).exec();
 
         if (!foundUser) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        //generating salt
+        // Generating salt
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
 
-        //hash password with salt
+        // Hash password with salt
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        foundUser.password = hashedPassword
+        foundUser.password = hashedPassword;
 
-        await foundUser.save()
+        await foundUser.save();
 
         delete passwordResetTokens[email];
 
-        res.json({ message: 'Password reset successful' });
+        res.status(200).json({ success: true, message: 'Password reset successful' });
     } catch (error) {
-        return res.status(400).json({ message: 'Invalid or expired token' });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(400).json({ success: false, message: 'Token expired' });
+        } else if (error.name === 'JsonWebTokenError') {
+            return res.status(400).json({ success: false, message: 'Invalid token' });
+        } else {
+            console.error('Error during password reset:', error);
+            return res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
     }
-}
+};
+
 
 const changePassword = async (req, res) => {
-    const { newPassword, email } = req.body;
 
     try {
+        const { newPassword, email } = req.body;
+
+        if (!newPassword || !email) {
+            return res.status(400).json({ success: false, message: 'Invalid input' });
+        }
+
         const foundUser = await User.findOne({ email }).exec();
 
         if (!foundUser) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        //generating salt
+        // Generating salt
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
 
-        //hash password with salt
+        // Hash password with salt
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        console.log(hashedPassword)
+        foundUser.password = hashedPassword;
 
-        foundUser.password = hashedPassword
+        await foundUser.save();
 
-        await foundUser.save()
-
-        res.json({ message: 'Password changed successfully' });
+        res.status(200).json({ success: true, message: 'Password changed successfully' });
     } catch (error) {
-        return res.status(400).json({ message: 'Invalid or expired token' });
+        console.error('Error during password change:', error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
-}
+};
+
 
 const verifyResetPassword = async (req, res) => {
     try {
-        const { resetPassToken } = req.body
+        const { resetPassToken } = req.body;
+
+        if (!resetPassToken) {
+            return res.status(400).json({ success: false, message: 'Reset token not provided' });
+        }
+
         const decoded = jwt.verify(resetPassToken, process.env.FORGOT_PASSWORD_TOKEN_SECRET);
         const email = decoded.email;
 
-        let serverResetToken = passwordResetTokens[email]
+        let serverResetToken = passwordResetTokens[email];
+
         if (serverResetToken === resetPassToken) {
-            return res.status(200).json({ message: "access granted to page" })
+            return res.status(200).json({ success: true, message: 'Access granted to page' });
         } else {
-            return res.status(401).json({ message: "not vaild page" })
+            return res.status(401).json({ success: false, message: 'Invalid reset token' });
         }
     } catch (error) {
-        console.error("some error")
-        res.status(401).json({ message: "invalid reset token" })
+        console.error('Error during reset token verification:', error);
+        return res.status(401).json({ success: false, message: 'Invalid reset token' });
     }
+};
 
-}
 
 
 
