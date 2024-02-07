@@ -26,6 +26,7 @@ const verifyRefreshToken = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Invalid user or refresh token' });
         }
 
+
         // Continue to the next route
         next();
 

@@ -14,13 +14,21 @@ const verifyAccessToken = (req, res, next) => {
         if (!accessToken) {
             return res.status(401).json({ success: false, message: 'Access token is missing' });
         }
+        let decodedEmailFromRefreshToken;
+        const decodedRefresh = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decodedRefresh) => {
+            if (err) {
+                return res.status(401).json({ success: false, message: 'Invalid referesh token' });
+            }
+            decodedEmailFromRefreshToken = decodedRefresh.email;
+        });
 
         // Verify token
         jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
             if (err) {
                 return res.status(401).json({ success: false, message: 'Invalid access token' });
             }
-            // req.userId = decoded.userId;
+            if (decodedEmailFromRefreshToken !== decoded?.email) return res.status(403).send({ success: false, message: "invalid token." })
+            req.roles = decoded.roles
             // Continue to the next route
             next();
         });

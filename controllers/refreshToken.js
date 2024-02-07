@@ -35,7 +35,8 @@ const refreshToken = async (req, res) => {
                 return res.sendStatus(403);
             }
 
-            const newAccessToken = jwt.sign({ email: decoded.email }, process.env.ACCESS_TOKEN_SECRET, {
+            const roles = Object.values(foundUser.roles).filter(Boolean)
+            const newAccessToken = jwt.sign({ email: decoded.email, roles }, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
             });
 
@@ -56,7 +57,7 @@ const refreshToken = async (req, res) => {
 
             res.status(200).json({
                 message: "Token regenerated",
-                userInfo: { _id, name, email }
+                userInfo: { _id, name, email, roles: Object.keys(foundUser.roles).filter(key => foundUser.roles[key] !== undefined) }
             });
         });
     } catch (error) {

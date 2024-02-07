@@ -1,7 +1,10 @@
 const User = require("../model/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { sendResetPasswordMail } = require("../lib/mailer");
+const { sendMail } = require("../lib/mailer");
+const ROLES_LIST = require("../config/rolesList");
+const { restLinkContent, verifyAccountContent } = require("../utils/htmlContentForEmail");
+const { generateVerificationCode } = require("../utils/helpers");
 
 
 const login = async (req, res) => {
@@ -16,14 +19,18 @@ const login = async (req, res) => {
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
 
+        if (!user?.verified) {
+            return res.status(302).json({ success: false, message: "redirected to verify", url: "/verify-account" })
+        }
+
         // Compare the provided password with the hashed password from the database
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         // If the password matches, generate tokens
         if (passwordMatch) {
             const { _id, name, email } = user;
-
-            const accessToken = jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, {
+            const roles = Object.values(user.roles).filter(Boolean)
+            const accessToken = jwt.sign({ email: user.email, roles }, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: `${process.env.ACCESS_TOKEN_TIME_VALID}m`,
             });
 
@@ -39,13 +46,14 @@ const login = async (req, res) => {
 
             await user.save();
 
+
             // Set HTTP-only cookies
             res.cookie('accessToken', accessToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.ACCESS_TOKEN_MAXAGE) });
             res.cookie('refreshToken', refreshToken, { httpOnly: true, sameSite: "None", secure: true, maxAge: eval(process.env.REFRESH_TOKEN_MAXAGE) });
 
             res.status(200).json({
                 success: true,
-                userInfo: { _id, name, email },
+                userInfo: { _id, name, email, roles: Object.keys(user.roles).filter(key => user.roles[key] !== undefined && user.roles[key] !== null) },
                 message: "User successfully logged in",
             });
         } else {
@@ -117,10 +125,11 @@ const forgotPassword = async (req, res) => {
             user_email: foundUser.email,
             admin_message: resetLink,
             subject: "Password Recovery",
+            html: restLinkContent(foundUser.name, foundUser.email, resetLink, "TemplateHub Team"),
             from_name: "TemplateHub Team"
         };
 
-        let sentSuccessfully = await sendResetPasswordMail(body);
+        let sentSuccessfully = await sendMail(body);
 
         if (!sentSuccessfully) {
             return res.status(500).json({ success: false, message: "Some internal error occurred" });
@@ -240,10 +249,98 @@ const verifyResetPassword = async (req, res) => {
     }
 };
 
+const verifyAccount = async (req, res) => {
+    try {
+        const { code, email } = req.body;
+
+        // Check if the verification code is provided
+        if (!code) {
+            return res.status(400).json({ success: false, message: "Enter a valid verification code" });
+        }
+
+        // Find the user by email
+        const user = await User.findOne({ email }); // Assuming req.user contains the user's email
+
+        // Check if the user exists
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Check if the user is already verified
+        if (user.verified) {
+            return res.status(400).json({ success: false, message: "Account is already verified" });
+        }
+
+        // Check if the verification code is valid and has not expired
+        if (
+            user.verificationCode &&
+            user.verificationCode.code === code &&
+            user.verificationCode.expiresAt &&
+            user.verificationCode.expiresAt > new Date()
+        ) {
+            // Code is valid and has not expired
+            user.verified = true;
+            user.verificationCode = { code: null, expiresAt: null }; // Clear verification code after successful verification
+            await user.save();
+
+            return res.status(200).json({ success: true, message: "Account successfully verified. Please Login To Enjoy Our Services" });
+        } else {
+            // Invalid code or expired
+            return res.status(400).json({ success: false, message: "Invalid or expired verification code" });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
+
+// Example route for requesting a new verification code
+
+const requestNewVerificationCode = async (req, res) => {
+    try {
+        const { email } = req.body;
+        // Find the user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check if the user is already verified
+        if (user.verified) {
+            return res.status(400).json({ error: 'User is already verified' });
+        }
+
+        // Generate and set a new verification code
+        user.verificationCode = {
+            code: generateVerificationCode(),
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Set expiration to 1 hour from now
+        };
+
+        await user.save();
+
+        const body = {
+            user_name: user.name,
+            user_email: user.email,
+            admin_message: user.verificationCode.code,
+            subject: "Verification Code For TemplateHub Account",
+            html: verifyAccountContent(user.name, user.email, user.verificationCode.code, "TemplateHub Team"),
+            from_name: "TemplateHub Team"
+        };
+
+        let sentSuccessfully = await sendMail(body);
+
+        if (!sentSuccessfully) {
+            return res.status(500).json({ success: false, message: "Some internal error occurred" });
+        }
+
+        res.status(200).json({ success: true, message: 'New verification code sent successfully! Check Your Email' });
+    } catch (error) {
+        console.error('Error requesting new verification code:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
 
 
 
-
-
-
-module.exports = { login, logout, forgotPassword, resetPassword, changePassword, verifyResetPassword };
+module.exports = { login, logout, forgotPassword, resetPassword, changePassword, verifyResetPassword, verifyAccount, requestNewVerificationCode };

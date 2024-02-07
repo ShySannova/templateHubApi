@@ -142,7 +142,7 @@ const deleteTemplate = async (req, res) => {
 
         if (data.deletedCount === 1) {
             // The template was successfully deleted
-            res.status(204).json({ success: true, message: "Template deleted successfully" });
+            res.status(200).json({ success: true, message: "Template deleted successfully" });
         } else if (data.deletedCount === 0) {
             // Handle case where template with the specified ID is not found
             res.status(404).json({ success: false, message: "Template not found" });

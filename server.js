@@ -4,13 +4,21 @@ const cors = require('cors');
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
 const corsOptions = require('./config/corsOptions');
-const { cleanupExpiredRefreshTokens } = require("./lib/tokenCleanup")
+const { cleanupExpiredRefreshTokens } = require("./lib/tokenCleanup");
+const rateLimiter = require('./middlewares/rateLimiter');
+const { generateVerificationCode } = require('./utils/helpers');
+const logsHandler = require('./middlewares/logsHandler');
+const errorHandler = require('./middlewares/errorHandler');
 
+//importing routes
+const logsRouter = require('./routes/logs')
+const registerRouter = require('./routes/register');
+const authRouter = require('./routes/auth');
+const verifyAccessToken = require('./middlewares/verifyAccessToken')
+const userRouter = require('./routes/user');
+const templateRouter = require('./routes/template');
+const employeeRouter = require('./routes/employee')
 
-// import express from 'express'
-// import mongoose from 'mongoose';
-// import cors from 'cors';
-// import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -18,55 +26,46 @@ const PORT = process.env.PORT || 8000;
 const mongoURI = process.env.MONGODB_URI;
 
 const app = express();
+const maxRequests = 60; // Maximum requests allowed per client
+const timeWindow = 60 * 1000; // Time window in milliseconds (e.g., 1 minute)
+
+
+app.use(logsHandler)
+
 
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser())
+app.use(rateLimiter(maxRequests, timeWindow)); //use as per your need for all endpoint or for specific endpoint
 
 cleanupExpiredRefreshTokens()
-
-//importing routes
-const registerRouter = require('./routes/register');
-const authRouter = require('./routes/auth');
-const verifyAccessToken = require('./middlewares/verifyAccessToken')
-const userRouter = require('./routes/user');
-
-const templateRouter = require('./routes/template');
 
 
 //setting endpoints
 app.use('/', [registerRouter]);
 app.use('/', [authRouter]);
+app.use('/', require("./routes/cookiesRemover"))
 app.use('/', require('./routes/refreshToken'));
 app.use('/template', [templateRouter]);
-app.use('/', require("./routes/cookiesRemover"))
 
 app.use(verifyAccessToken);
+app.use('/', [logsRouter]);
 app.use('/user', [userRouter]);
+app.use("/employee", [employeeRouter])
+
+app.use("*", (req, res) => {
+    res.status(404).json({ success: false, message: "use vaild enpoint" })
+})
 
 
+app.use(errorHandler);
 
-// try {
-//     await mongoose.connect(mongoURI);
-//     console.log('db successfully connected');
+mongoose.connect(mongoURI).then(() => {
+    console.log("database connection established");
 
-//     app.listen(PORT, () => {
-//         console.log('server up and running', PORT)
-//     })
-
-// } catch (error) {
-//     console.error('database failed to connect', error)
-// }
-
-mongoose
-    .connect(mongoURI)
-    .then(() => {
-        console.log("database connection established");
-
-        app.listen(PORT, () => {
-            console.log(`server up and running ${PORT}`);
-        });
-    })
-    .catch((err) => {
-        console.log(err);
+    app.listen(PORT, () => {
+        console.log(`server up and running ${PORT}`);
     });
+}).catch((err) => {
+    console.log(err);
+});

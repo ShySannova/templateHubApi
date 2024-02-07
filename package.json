@@ -5,6 +5,11 @@
     "main": "server.js",
     "scripts": {
         "start": "NODE_ENV=production node server.js",
+        "start:pm2":"NODE_ENV=production pm2 start server.js -i max",
+        "stop:pm2":"pm2 stop server.js",
+        "restart:pm2":"pm2 restart server.js",
+        "logs:pm2":"pm2 logs",
+        "status:pm2":"pm2 status",
         "dev": "nodemon server.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -15,9 +20,11 @@
         "bcrypt": "^5.1.1",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
+        "date-fns": "^3.3.1",
         "dotenv": "^16.3.1",
         "express": "^4.18.2",
         "jsonwebtoken": "^9.0.2",
-        "mongoose": "^8.0.3"
+        "mongoose": "^8.0.3",
+        "pm2": "^5.3.1"
     }
 }

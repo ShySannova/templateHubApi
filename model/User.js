@@ -17,6 +17,36 @@ const userSchema = mongoose.Schema(
             required: true,
             trim: true,
         },
+        roles: {
+            User: {
+                type: Number,
+                default: 2001,
+            },
+            Subscriber: Number,
+            Admin: Number,
+            Developer: Number,
+            Editor: Number,
+            Author: Number,
+        },
+        employeeOf: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        verified: {
+            type: Boolean,
+            default: false,
+        },
+
+        verificationCode: {
+            code: {
+                type: String,
+                default: null,
+            },
+            expiresAt: {
+                type: Date,
+                default: null,
+            },
+        },
         refreshToken: {
             type: [{
                 token: {
