@@ -36,4 +36,38 @@ const addEmployeeRole = async (req, res) => {
     }
 };
 
-module.exports = { addEmployeeRole };
+const deleteEmployee = async (req, res) => {
+    try {
+        const employeeId = req?.params?.employeeId;
+        const data = await User.deleteOne({ _id: employeeId });
+
+        if (data.deletedCount === 1) {
+            // The template was successfully deleted
+            res.status(200).json({ success: true, message: "Employee deleted successfully" });
+        } else if (data.deletedCount === 0) {
+            // Handle case where template with the specified ID is not found
+            res.status(404).json({ success: false, message: "Employee not found" });
+        } else {
+            // Handle other unexpected cases
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    } catch (error) {
+        console.error(error);
+
+        if (error.name === 'CastError') {
+            // Handle invalid ObjectId in the request
+            res.status(400).json({ success: false, message: "Invalid ObjectId in the request" });
+        } else if (error.message.includes('timeout')) {
+            // Handle timeout-related errors
+            res.status(503).json({ success: false, message: "Database operation timed out" });
+        } else if (error.name === 'MongoNetworkError') {
+            // Handle network-related errors
+            res.status(503).json({ success: false, message: "Database connection error" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    }
+};
+
+module.exports = { addEmployeeRole, deleteEmployee };

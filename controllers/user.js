@@ -31,7 +31,7 @@ const findAllUsers = async (req, res) => {
 };
 
 
-const findEmpoyees = async (req, res) => {
+const findEmployees = async (req, res) => {
 
     try {
         const employerId = req?.params?.employerId
@@ -99,4 +99,6 @@ const findOneUser = async (req, res) => {
 };
 
 
-module.exports = { findAllUsers, findOneUser, findEmpoyees };
+
+
+module.exports = { findAllUsers, findOneUser, findEmployees};

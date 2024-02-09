@@ -5,11 +5,11 @@
     "main": "server.js",
     "scripts": {
         "start": "NODE_ENV=production node server.js",
-        "start:pm2":"NODE_ENV=production pm2 start server.js -i max",
-        "stop:pm2":"pm2 stop server.js",
-        "restart:pm2":"pm2 restart server.js",
-        "logs:pm2":"pm2 logs",
-        "status:pm2":"pm2 status",
+        "start:pm2": "NODE_ENV=production pm2 start server.js -i max",
+        "stop:pm2": "pm2 stop server.js",
+        "restart:pm2": "pm2 restart server.js",
+        "logs:pm2": "pm2 logs",
+        "status:pm2": "pm2 status",
         "dev": "nodemon server.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },

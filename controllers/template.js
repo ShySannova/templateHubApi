@@ -29,10 +29,41 @@ const createTemplate = async (req, res) => {
 
 const findAllTemplates = async (req, res) => {
     try {
-        const templates = await templateModel.find().populate({
+        const templates = await templateModel.find({status:"published"}).populate({
             path: 'user',
             select: 'name', // Select field to show by using "name"  //Exclude field by using '-password'
         });
+        res.status(200).json({ success: true, templates })
+    } catch (error) {
+        console.error(error);
+
+        if (error.name === 'CastError') {
+            // Handle invalid ObjectId in the request
+            res.status(400).json({ success: false, message: "Invalid ObjectId in the request" });
+        } else if (error.name === 'ValidationError') {
+            // Handle custom schema validation errors
+            res.status(400).json({ success: false, message: "Schema validation error: Please check your data" });
+        } else if (error.code === 11000) {
+            // Handle duplicate key (e.g., unique constraint violation)
+            res.status(409).json({ success: false, message: "Duplicate entry: This template already exists" });
+        } else if (error.message.includes('timeout')) {
+            // Handle timeout-related errors
+            res.status(503).json({ success: false, message: "Database operation timed out" });
+        } else if (error.name === 'MongoNetworkError') {
+            // Handle network-related errors
+            res.status(503).json({ success: false, message: "Database connection error" });
+        } else {
+            // Handle other unexpected errors
+            res.status(500).json({ success: false, message: "Internal Server Error: Please try again later" });
+        }
+    }
+};
+
+
+const findUserTemplates = async (req, res) => {
+    try {
+        const userID = req.params.id;
+        const templates = await templateModel.find({ user: userID })
         res.status(200).json({ success: true, templates })
     } catch (error) {
         console.error(error);
@@ -170,4 +201,4 @@ const deleteTemplate = async (req, res) => {
 };
 
 
-module.exports = { createTemplate, findAllTemplates, findOneTemplate, updateTemplate, deleteTemplate };
+module.exports = { createTemplate, findAllTemplates, findUserTemplates, findOneTemplate, updateTemplate, deleteTemplate };
