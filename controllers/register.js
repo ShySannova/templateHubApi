@@ -46,11 +46,11 @@ const register = async (req, res) => {
             from_name: "TemplateHub Team"
         };
 
-        let sentSuccessfully = await sendMail(body);
+        // let sentSuccessfully = await sendMail(body);
 
-        if (!sentSuccessfully) {
-            return res.status(500).json({ success: false, message: "Some internal error occurred" });
-        }
+        // if (!sentSuccessfully) {
+        //     return res.status(500).json({ success: false, message: "Some internal error occurred" });
+        // }
 
         res.status(201).json({ success: true, message: "User Successfully Registered! Please Login" });
     } catch (error) {
@@ -113,11 +113,11 @@ const registerAsDeveloper = async (req, res) => {
             from_name: "TemplateHub Team"
         };
 
-        let sentSuccessfully = await sendMail(body);
+        // let sentSuccessfully = await sendMail(body);
 
-        if (!sentSuccessfully) {
-            return res.status(500).json({ success: false, message: "Some internal error occurred" });
-        }
+        // if (!sentSuccessfully) {
+        //     return res.status(500).json({ success: false, message: "Some internal error occurred" });
+        // }
 
         res.status(201).json({ success: true, message: "User Successfully Registered! Please Login" });
     } catch (error) {
@@ -180,11 +180,11 @@ const registerEmployee = async (req, res) => {
             from_name: "TemplateHub Team"
         };
 
-        let sentSuccessfully = await sendMail(body);
+        // let sentSuccessfully = await sendMail(body);
 
-        if (!sentSuccessfully) {
-            return res.status(500).json({ success: false, message: "Some internal error occurred" });
-        }
+        // if (!sentSuccessfully) {
+        //     return res.status(500).json({ success: false, message: "Some internal error occurred" });
+        // }
 
         res.status(201).json({ success: true, message: "User Successfully Registered! Please Login" });
     } catch (error) {
