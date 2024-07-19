@@ -14,11 +14,12 @@ const errorHandler = require('./middlewares/errorHandler');
 const logsRouter = require('./routes/logs')
 const registerRouter = require('./routes/register');
 const authRouter = require('./routes/auth');
+const cookiesRemoverRouter = require("./routes/cookiesRemover");
+const refreshTokenRouter = require('./routes/refreshToken');
 const verifyAccessToken = require('./middlewares/verifyAccessToken')
 const userRouter = require('./routes/user');
 const templateRouter = require('./routes/template');
-const employeeRouter = require('./routes/employee')
-
+const employeeRouter = require('./routes/employee');
 
 dotenv.config();
 
@@ -42,19 +43,15 @@ cleanupExpiredRefreshTokens()
 
 
 //setting endpoints
-app.use('/', [registerRouter]);
-app.use('/', [authRouter]);
-app.use('/', require("./routes/cookiesRemover"))
-app.use('/', require('./routes/refreshToken'));
+app.use([registerRouter, authRouter, cookiesRemoverRouter, refreshTokenRouter, logsRouter]);
 app.use('/template', [templateRouter]);
 
 app.use(verifyAccessToken);
-app.use('/', [logsRouter]);
 app.use('/user', [userRouter]);
 app.use("/employee", [employeeRouter])
 
 app.use("*", (req, res) => {
-    res.status(404).json({ success: false, message: "use vaild enpoint" })
+    res.status(404).json({ success: false, message: "use vaild endpoint" })
 })
 
 
