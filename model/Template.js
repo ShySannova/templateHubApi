@@ -62,9 +62,11 @@ const TemplateSchema = mongoose.Schema(
             type: [],
         },
         sourceCode: {
-            type: {
-                frotend: String,
-                backend: String
+            frontend: {
+                type: String,
+            },
+            backend: {
+                type: String,
             },
         },
     },

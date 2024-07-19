@@ -74,7 +74,7 @@ const register = async (req, res) => {
 
 const registerAsDeveloper = async (req, res) => {
     try {
-        const { name, email, password, employerId } = req?.body;
+        const { name, email, password } = req?.body;
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
@@ -143,10 +143,12 @@ const registerEmployee = async (req, res) => {
     try {
         const { name, email, password, employerId } = req?.body;
 
+        if (!name || !email || !password || !employerId) return res.status(400).json({ success: false, message: "provide vaild data" })
+
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ success: false, message: "User with this email already exists" });
+            return res.status(400).json({ success: false, message: "Employee with this email already exists" });
         }
 
         // Generating salt
@@ -186,9 +188,9 @@ const registerEmployee = async (req, res) => {
             return res.status(500).json({ success: false, message: "Some internal error occurred" });
         }
 
-        res.status(201).json({ success: true, message: "User Successfully Registered! Please Login" });
+        res.status(201).json({ success: true, message: "Employee Successfully Registered! Please Login" });
     } catch (error) {
-        console.error("Error registering user", error);
+        console.error("Error registering Employee", error);
 
         if (error.name === 'ValidationError') {
             // Handle validation errors (e.g., required fields missing)

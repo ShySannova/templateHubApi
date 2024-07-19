@@ -11,7 +11,7 @@ router.post('/register', register);
 
 router.post('/register-developer', registerAsDeveloper);
 
-router.post('/register-employee', verifyAccessToken, verifyRoles(ROLES_LIST.Developer), registerEmployee);
+router.post('/register-employee', verifyAccessToken, verifyRoles(ROLES_LIST.Admin, ROLES_LIST.Developer), registerEmployee);
 
 
 

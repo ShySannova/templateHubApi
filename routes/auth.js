@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 const { login, logout, forgotPassword, resetPassword, verifyResetPassword, changePassword, verifyAccount, requestNewVerificationCode } = require('../controllers/auth');
-const verifyRefreshToken = require('../middlewares/verifyRefreshToken');
 const verifyAccessToken = require('../middlewares/verifyAccessToken');
 
 
@@ -15,7 +14,7 @@ router.post('/verify-account', verifyAccount)
 router.post('/request-new-verification-code', requestNewVerificationCode)
 
 
-router.post("/change-password", verifyRefreshToken, verifyAccessToken, changePassword)
+router.post("/change-password", verifyAccessToken, changePassword)
 
 
 
